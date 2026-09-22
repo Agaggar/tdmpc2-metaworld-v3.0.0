@@ -14,10 +14,10 @@ class TDMPC2(torch.nn.Module):
 	and supports both state and pixel observations.
 	"""
 
-	def __init__(self, cfg):
+	def __init__(self, cfg, device='cuda:0'):
 		super().__init__()
 		self.cfg = cfg
-		self.device = torch.device('cuda:0')
+		self.device = torch.device(device)
 		self.model = WorldModel(cfg).to(self.device)
 		self.optim = torch.optim.Adam([
 			{'params': self.model._encoder.parameters(), 'lr': self.cfg.lr*self.cfg.enc_lr_scale},
@@ -30,10 +30,10 @@ class TDMPC2(torch.nn.Module):
 		], lr=self.cfg.lr, capturable=True)
 		self.pi_optim = torch.optim.Adam(self.model._pi.parameters(), lr=self.cfg.lr, eps=1e-5, capturable=True)
 		self.model.eval()
-		self.scale = RunningScale(cfg)
+		self.scale = RunningScale(cfg, device=self.device)
 		self.cfg.iterations += 2*int(cfg.action_dim >= 20) # Heuristic for large action spaces
 		self.discount = torch.tensor(
-			[self._get_discount(ep_len) for ep_len in cfg.episode_lengths], device='cuda:0'
+			[self._get_discount(ep_len) for ep_len in cfg.episode_lengths], device=self.device
 		) if self.cfg.multitask else self._get_discount(cfg.episode_length)
 		print('Episode length:', cfg.episode_length)
 		print('Discount factor:', self.discount)
