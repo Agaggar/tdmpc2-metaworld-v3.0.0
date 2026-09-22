@@ -8,11 +8,10 @@ class Timeout(gym.Wrapper):
 
 	def __init__(self, env, max_episode_steps):
 		super().__init__(env)
+		# Plain attributes (not a read-only property) so domain make_env
+		# helpers can assign max_episode_steps under Gymnasium>=1.0.
 		self._max_episode_steps = max_episode_steps
-	
-	@property
-	def max_episode_steps(self):
-		return self._max_episode_steps
+		self.max_episode_steps = max_episode_steps
 
 	def reset(self, **kwargs):
 		self._t = 0

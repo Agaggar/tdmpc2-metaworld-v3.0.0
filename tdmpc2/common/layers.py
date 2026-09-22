@@ -15,7 +15,9 @@ class Ensemble(nn.Module):
 		# combine_state_for_ensemble causes graph breaks
 		self.params = from_modules(*modules, as_module=True)
 		with self.params[0].data.to("meta").to_module(modules[0]):
-			self.module = deepcopy(modules[0])
+			# Do not register the meta module as an nn.Module child — Module.to()
+			# on PyTorch>=2.1 cannot move meta tensors and raises NotImplementedError.
+			object.__setattr__(self, "module", deepcopy(modules[0]))
 		self._repr = str(modules[0])
 		self._n = len(modules)
 
@@ -193,10 +195,12 @@ def api_model_conversion(target_state_dict, source_state_dict):
 			new_state_dict[new_total_key] = val
 
 	# add batch_size and device from target_state_dict to new_state_dict
+	# (present on tensordict<=0.8; omitted from Module.state_dict under newer tensordict)
 	for prefix in ('_Qs.', '_detach_Qs_', '_target_Qs_'):
 		for key in ('__batch_size', '__device'):
 			new_key = prefix + 'params.' + key
-			new_state_dict[new_key] = target_state_dict[new_key]
+			if new_key in target_state_dict:
+				new_state_dict[new_key] = target_state_dict[new_key]
 
 	# check that every key in new_state_dict is in target_state_dict
 	for key in new_state_dict.keys():

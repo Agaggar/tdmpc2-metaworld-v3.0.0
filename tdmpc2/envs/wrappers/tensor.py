@@ -12,7 +12,12 @@ class TensorWrapper(gym.Wrapper):
 
 	def __init__(self, env):
 		super().__init__(env)
-	
+
+	@property
+	def max_episode_steps(self):
+		# Gymnasium>=1.0 wrappers no longer forward attrs via __getattr__.
+		return self.env.max_episode_steps
+
 	def rand_act(self):
 		return torch.from_numpy(self.action_space.sample().astype(np.float32))
 
